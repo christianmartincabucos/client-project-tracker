@@ -67,7 +67,7 @@ docker compose exec backend php artisan migrate --seed
 ```
 
 Frontend: http://localhost:5173
-API: http://localhost:8000/api/projects
+API: http://localhost:8000/projects
 
 ## API Notes
 
