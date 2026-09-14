@@ -1,79 +1,207 @@
 # Client Project Tracker
 
-A small full-stack technical assessment for a digital agency. The application provides a REST API and Vue interface for creating, viewing, editing, filtering, sorting, and deleting client projects.
+A small full-stack technical assessment for a digital agency.
 
-## Stack
+The application allows project managers to create, view, update, delete, search, filter, and sort client projects while enforcing the required project validation rules.
 
-- Laravel 12 / PHP 8.3+
-- PostgreSQL
-- Vue 3 + TypeScript + Vite
-- Pinia + Vue Router + Axios
-- Docker Compose
-- PHPUnit/Laravel feature tests
+## Features Implemented
 
-## Implemented Requirements
+### Required Features
 
-- GET `/projects`
-- GET `/projects/{id}`
-- POST `/projects`
-- PUT `/projects/{id}`
-- DELETE `/projects/{id}`
-- Required client/project names
-- Enum-backed status and priority validation
-- Due date cannot be earlier than start date
-- Meaningful validation errors (HTTP 422)
-- Search by client/project name
-- Filtering by status and priority
+- Get all projects
+- Get a single project
+- Create a project
+- Update a project
+- Delete a project
+- Client Name is required
+- Project Name is required
+- Status must be one of:
+  - Planning
+  - In Progress
+  - On Hold
+  - Completed
+- Priority must be one of:
+  - Low
+  - Medium
+  - High
+- Due Date cannot be earlier than Start Date
+- Meaningful validation errors with HTTP `422` responses
+- RESTful API implementation
+
+### Bonus Features
+
+- Search by client name and project name
+- Filter by status
+- Filter by priority
 - Sorting
-- Seeded assessment data (12 projects)
-- Automated API tests
-- Docker development setup
+- Automated API feature tests
+- Docker development environment
 
-## Local Setup
+## Tech Stack
 
 ### Backend
 
-```bash
-cd backend
-cp .env.example .env
-# install Composer dependencies
-docker compose exec backend composer install
-docker compose exec backend php artisan key:generate
-docker compose exec backend php artisan migrate --seed
-docker compose exec backend php artisan serve
-```
+- Laravel 13
+- PHP 8.4+
+- PostgreSQL 17
 
 ### Frontend
 
-```bash
-cd frontend
-npm install
-npm run dev
+- Vue 3
+- TypeScript
+- Vite
+- Pinia
+- Vue Router
+- Axios
+
+### Development
+
+- Docker Compose
+- PHPUnit / Laravel testing tools
+
+## Architecture
+
+```text
+┌─────────────────────────┐
+│       Browser           │
+│                         │
+│   Vue 3 + TypeScript    │
+│        :5173            │
+└────────────┬────────────┘
+             │
+             │ HTTP / Axios
+             ▼
+┌─────────────────────────┐
+│      Laravel API        │
+│                         │
+│       PHP 8.4           │
+│        :8000            │
+└────────────┬────────────┘
+             │
+             │ Eloquent
+             ▼
+┌─────────────────────────┐
+│      PostgreSQL 17      │
+│        :5432            │
+└─────────────────────────┘
 ```
 
-The Vite dev server proxies `/projects` to `http://localhost:8000`.
+The frontend and backend are maintained as separate applications.
 
-## Docker
+The Vue application is responsible for presentation and user interaction, while Laravel handles validation, business rules, persistence, and API responses.
+
+## Setup Instructions
+
+### Prerequisites
+
+- Docker Desktop
+- Docker Compose
+- Git
+
+### Run with Docker
+
+Clone the repository:
 
 ```bash
-docker compose up --build
+git clone <repository-url>
+cd client-project-tracker
 ```
 
-In another terminal:
+Start the application:
+
+```bash
+docker compose up -d --build
+```
+
+Generate the Laravel application key:
 
 ```bash
 docker compose exec backend php artisan key:generate
+```
+
+Run database migrations and seed the assessment data:
+
+```bash
 docker compose exec backend php artisan migrate --seed
 ```
 
-Frontend: http://localhost:5173
-API: http://localhost:8000/projects
+Clear cached configuration when needed:
 
-## API Notes
+```bash
+docker compose exec backend php artisan optimize:clear
+```
 
-The API returns a deliberately stable camelCase contract even though Laravel uses snake_case database columns. This keeps the frontend decoupled from the database schema.
+### Application URLs
 
-### Example create request
+Frontend:
+
+```text
+http://localhost:5173
+```
+
+Backend API:
+
+```text
+http://localhost:8000/projects
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/projects` | Get all projects |
+| GET | `/projects/{id}` | Get a single project |
+| POST | `/projects` | Create a project |
+| PUT | `/projects/{id}` | Update a project |
+| DELETE | `/projects/{id}` | Delete a project |
+
+## API Query Parameters
+
+The `GET /projects` endpoint supports optional query parameters for the bonus search, filtering, and sorting functionality.
+
+Available parameters:
+
+- `search`
+- `status`
+- `priority`
+- `sort`
+- `direction`
+
+Example:
+
+```text
+GET /projects?search=acme&status=Planning&priority=High&sort=due_date&direction=asc
+```
+
+## API Response Format
+
+The API uses a stable camelCase JSON response format for the frontend, while the database uses snake_case column names.
+
+Example response:
+
+```json
+{
+  "data": {
+    "id": 1,
+    "clientName": "Acme Corporation",
+    "projectName": "Corporate Website Redesign",
+    "description": "Redesign and modernize the company's corporate website.",
+    "status": "In Progress",
+    "priority": "High",
+    "startDate": "2026-06-01",
+    "dueDate": "2026-07-15"
+  }
+}
+```
+
+This keeps the frontend API contract independent from the database schema.
+
+## Example Create Request
+
+```http
+POST /projects
+Content-Type: application/json
+```
 
 ```json
 {
@@ -87,28 +215,114 @@ The API returns a deliberately stable camelCase contract even though Laravel use
 }
 ```
 
-### Query parameters
+## Validation Rules
 
-`GET /projects?search=acme&status=Planning&priority=High&sort=due_date&direction=asc`
+The backend validates all incoming project data.
 
-## Architecture Decisions
+| Field | Rules |
+|---|---|
+| Client Name | Required, string |
+| Project Name | Required, string |
+| Description | Optional, string |
+| Status | Required, valid project status |
+| Priority | Required, valid project priority |
+| Start Date | Optional, valid date |
+| Due Date | Optional, valid date and not earlier than Start Date |
 
-- **Form Requests** keep validation out of controllers.
-- **PHP enums** make status and priority finite, explicit domain values.
-- **API Resource** controls the public JSON representation.
-- **Controller-level query composition** keeps the endpoint simple while supporting useful search/filter/sort behavior.
-- **Reusable Vue form** serves both create and edit flows.
-- **Server-side validation remains authoritative**; client validation exists primarily for fast feedback.
+Invalid requests return HTTP `422 Unprocessable Entity` with structured validation errors.
+
+Example:
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "dueDate": [
+      "The due date must be on or after the start date."
+    ]
+  }
+}
+```
+
+## Database and Seed Data
+
+The application uses PostgreSQL 17.
+
+The assessment provides 12 sample projects in `test_data.json`. These projects are included as Laravel seed data.
+
+To recreate the database from scratch:
+
+```bash
+docker compose exec backend php artisan migrate:fresh --seed
+```
 
 ## Testing
 
+Run the automated test suite with:
+
 ```bash
-cd backend
-php artisan test
+docker compose exec backend php artisan test
 ```
 
-Tests cover listing, creation, validation, updating, deleting, and missing-resource behavior.
+The tests cover:
+
+- Project listing
+- Project creation
+- Validation failures
+- Project updates
+- Project deletion
+- Missing project handling
+
+## Architecture Decisions
+
+### Form Requests
+
+Laravel Form Requests are used to keep validation rules separate from controllers and make the validation logic easier to maintain and test.
+
+### PHP Enums
+
+PHP enums are used for project status and priority to make the allowed domain values explicit and prevent arbitrary values from being used throughout the application.
+
+### API Resources
+
+Laravel API Resources control the API response structure and provide a stable contract between the backend and frontend.
+
+### Backend Search, Filtering, and Sorting
+
+Search, filtering, and sorting are implemented on the backend rather than only in the browser. This keeps data-related operations close to the database and provides a foundation that can scale as the number of projects grows.
+
+### Reusable Vue Form
+
+The same Vue form component is used for both creating and editing projects to avoid duplicating form logic.
+
+### Server-Side Validation
+
+Client-side validation is used for immediate user feedback, but the backend remains the authoritative source of validation and business rules.
+
+## Assumptions Made
+
+- Authentication is not required because it is listed as an optional bonus feature in the assessment.
+- A project description is optional.
+- Start Date and Due Date are optional.
+- When both dates are provided, Due Date must be on or after Start Date.
+- Status and Priority are restricted to the values explicitly defined in the assessment.
+- Search applies to both Client Name and Project Name.
+- Search, filtering, and sorting are implemented through optional query parameters on `GET /projects`.
+- The supplied 12-project dataset is treated as the initial seed data.
+- PostgreSQL is used as the primary application database.
+- The frontend and backend are deployed as separate applications during development and communicate through HTTP.
+- The API response uses camelCase while the database uses snake_case.
 
 ## AI Disclosure
 
-ChatGPT and Claude Code may be used as development assistants for implementation ideas, boilerplate, edge-case review, and documentation. All generated code is reviewed and tested before submission.
+ChatGPT were used as development assistants during the assessment.
+
+They were used for:
+
+- Reviewing implementation approaches
+- Generating and refining boilerplate
+- Identifying potential edge cases
+- Reviewing validation and error-handling approaches
+- Improving documentation
+
+All generated code was reviewed, adapted, and tested before inclusion in the project.
