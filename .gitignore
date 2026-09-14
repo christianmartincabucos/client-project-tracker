@@ -1,0 +1,9 @@
+.DS_Store
+.env
+node_modules/
+dist/
+backend/storage/*.sqlite
+backend/storage/*.sqlite-journal
+backend/storage/*.json
+!backend/storage/projects.json
+!backend/storage/.gitkeep
